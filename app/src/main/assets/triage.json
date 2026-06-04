@@ -1,0 +1,381 @@
+{
+  "emergencies": [
+    {
+      "id": "e_bleeding",
+      "title": "Severe Bleeding",
+      "icon": "🩸",
+      "nodes": [
+        {
+          "node_id": "node_1",
+          "type": "question",
+          "text": "Is the bleeding spurting rhythmically or extremely heavy?",
+          "answers": [
+            {"label": "Yes", "next_node_id": "node_action_tourniquet"},
+            {"label": "No", "next_node_id": "node_action_pressure"}
+          ]
+        },
+        {
+          "node_id": "node_action_tourniquet",
+          "type": "action",
+          "text": "1. Call emergency services immediately.\n2. Apply a tourniquet 2-3 inches above the wound (never on a joint).\n3. Tighten until bleeding stops.\n4. Note the exact time it was applied.",
+          "answers": []
+        },
+        {
+          "node_id": "node_action_pressure",
+          "type": "action",
+          "text": "1. Apply firm, direct pressure with a clean sterile cloth or sterile pad.\n2. Keep pressure continuous for at least 5-10 minutes.\n3. Elevate the injured area above the heart if possible.",
+          "answers": []
+        }
+      ]
+    },
+    {
+      "id": "e_choking",
+      "title": "Choking (Adult or Child)",
+      "icon": "🗣️",
+      "nodes": [
+        {
+          "node_id": "node_1",
+          "type": "question",
+          "text": "Is the person able to speak, cry, or cough loudly?",
+          "answers": [
+            {"label": "Yes, they can cough", "next_node_id": "node_choking_cough"},
+            {"label": "No, they cannot breathe", "next_node_id": "node_choking_blocked"}
+          ]
+        },
+        {
+          "node_id": "node_choking_cough",
+          "type": "action",
+          "text": "1. Encourage them to keep coughing to clear the blockage.\n2. Do NOT perform back blows or thrusts if they can cough effectively.\n3. Monitor their condition closely.",
+          "answers": []
+        },
+        {
+          "node_id": "node_choking_blocked",
+          "type": "question",
+          "text": "Is the person still conscious?",
+          "answers": [
+            {"label": "Yes", "next_node_id": "node_action_heimlich"},
+            {"label": "No", "next_node_id": "node_action_choking_unconscious"}
+          ]
+        },
+        {
+          "node_id": "node_action_heimlich",
+          "type": "action",
+          "text": "1. Stand behind the person and lean them forward.\n2. Give 5 sharp back blows with the heel of your hand between their shoulder blades.\n3. Wrap arms around waist. Make a fist, grasp it, and make 5 quick upward abdominal thrusts (Heimlich maneuver).\n4. Alternate 5 back blows and 5 abdominal thrusts until object is expelled.",
+          "answers": []
+        },
+        {
+          "node_id": "node_action_choking_unconscious",
+          "type": "action",
+          "text": "1. Lower the person carefully onto their back to the floor.\n2. Call emergency services immediately.\n3. Open their mouth. If the foreign object is clearly visible, carefully sweep it out with a finger.\n4. Perform CPR (30 chest compressions), looking in the mouth each time before giving breaths.",
+          "answers": []
+        }
+      ]
+    },
+    {
+      "id": "e_cpr",
+      "title": "Cardiac Arrest / CPR",
+      "icon": "❤️",
+      "nodes": [
+        {
+          "node_id": "node_1",
+          "type": "question",
+          "text": "Is the person conscious and responsive when tapped and spoken to?",
+          "answers": [
+            {"label": "No response", "next_node_id": "node_cpr_assess_breathing"},
+            {"label": "Yes, responsive", "next_node_id": "node_cpr_responsive"}
+          ]
+        },
+        {
+          "node_id": "node_cpr_responsive",
+          "type": "action",
+          "text": "1. Check for visible injuries or other medical emergencies.\n2. Keep them calm and comfortable.\n3. Seek emergency/medical assessment if they feel chest pressure or tightness.",
+          "answers": []
+        },
+        {
+          "node_id": "node_cpr_assess_breathing",
+          "type": "question",
+          "text": "Are they breathing normally (look for chest rise and fall over 10 seconds)?",
+          "answers": [
+            {"label": "Not breathing or gasping", "next_node_id": "node_action_cpr_start"},
+            {"label": "Yes, breathing normally", "next_node_id": "node_action_recovery_pos"}
+          ]
+        },
+        {
+          "node_id": "node_action_cpr_start",
+          "type": "action",
+          "text": "1. Call emergency services immediately.\n2. Place hands on center of chest. Push hard and fast (100 to 120 compressions/minute, 2 inches deep).\n3. Keep doing CPR until emergency services arrive or an AED is ready.\n4. If trained, perform 30 compressions followed by 2 rescue breaths.",
+          "answers": []
+        },
+        {
+          "node_id": "node_action_recovery_pos",
+          "type": "action",
+          "text": "1. Place them on their side in the recovery position (helps keep airway clear).\n2. Tilt their head back slightly to keep the airway open.\n3. Monitor their breathing continuously until medical professionals arrive.",
+          "answers": []
+        }
+      ]
+    },
+    {
+      "id": "e_burns",
+      "title": "Severe Burns",
+      "icon": "🔥",
+      "nodes": [
+        {
+          "node_id": "node_1",
+          "type": "question",
+          "text": "What caused the burn injury?",
+          "answers": [
+            {"label": "Heat / Fire", "next_node_id": "node_burn_heat_type"},
+            {"label": "Chemicals", "next_node_id": "node_burn_chemical"},
+            {"label": "Electricity", "next_node_id": "node_burn_electrical"}
+          ]
+        },
+        {
+          "node_id": "node_burn_heat_type",
+          "type": "question",
+          "text": "Are there blisters/charred skin, or is the burn larger than the person's hand?",
+          "answers": [
+            {"label": "Yes (Severe Burn)", "next_node_id": "node_burn_severe_action"},
+            {"label": "No (Minor Burn)", "next_node_id": "node_burn_minor_action"}
+          ]
+        },
+        {
+          "node_id": "node_burn_severe_action",
+          "type": "action",
+          "text": "1. Call emergency services immediately.\n2. Do NOT apply cold water to severe/large burns (could cause hypothermia/shock).\n3. Protect the burn by covering loosely with a clean, dry, non-stick sterile dressing.\n4. Elevate burned extremities above heart level if possible.",
+          "answers": []
+        },
+        {
+          "node_id": "node_burn_minor_action",
+          "type": "action",
+          "text": "1. Hold burned area under cool, running tap water for at least 10 minutes.\n2. Do NOT apply ice, butter, grease, or oils to the burn.\n3. Apply a sterile gauze dressing loosely to protect the blisters.\n4. Take over-the-counter pain relievers if needed.",
+          "answers": []
+        },
+        {
+          "node_id": "node_burn_chemical",
+          "type": "action",
+          "text": "1. Brush dry chemicals off skin with a gloved hand or cloth.\n2. Flush the area immediately with cool, running water for 20 minutes or longer.\n3. Remove any contaminated clothing carefully.\n4. Wrap loosely with sterile dressing and seek immediate medical attention.",
+          "answers": []
+        },
+        {
+          "node_id": "node_burn_electrical",
+          "type": "action",
+          "text": "1. Ensure the power source is cut off before touching the person.\n2. Call emergency services.\n3. Check breathing and start CPR immediately if responsive checking is negative.\n4. Treat any visible thermal burns with dry, sterile dressing.",
+          "answers": []
+        }
+      ]
+    },
+    {
+      "id": "e_epilepsy",
+      "title": "Epilepsy & Seizures",
+      "icon": "🧠",
+      "nodes": [
+        {
+          "node_id": "node_1",
+          "type": "question",
+          "text": "Is the person currently actively seizing (convulsing, body shaking)?",
+          "answers": [
+            {"label": "Yes (Active Seizure)", "next_node_id": "node_epilepsy_seizing"},
+            {"label": "No (Confusion/Dazed)", "next_node_id": "node_epilepsy_dazed"}
+          ]
+        },
+        {
+          "node_id": "node_epilepsy_seizing",
+          "type": "action",
+          "text": "1. Protect from injury: clear nearby sharp, hard, or hot objects.\n2. Place a soft cushion, rolled coat, or pad under their head.\n3. Do NOT try to hold them down or restrain their movements.\n4. Do NOT place anything in their mouth (no fingers, spoons, pills).\n5. Note the start time. If the seizure lasts longer than 5 minutes, call emergency services immediately.",
+          "answers": []
+        },
+        {
+          "node_id": "node_epilepsy_dazed",
+          "type": "action",
+          "text": "1. Speak calmly and reassuringly while they recover conscious awareness.\n2. Help ease them onto their side in a recovery position to keep airway clear.\n3. Remain with them until they are fully alert and oriented.\n4. Do NOT feed them food or give liquids until they are completely conscious.",
+          "answers": []
+        }
+      ]
+    },
+    {
+      "id": "e_shock",
+      "title": "Shock (Medical)",
+      "icon": "🩺",
+      "nodes": [
+        {
+          "node_id": "node_1",
+          "type": "question",
+          "text": "Is the person showing pale/grayish skin, cool/clammy feel, rapid breathing, or dizziness?",
+          "answers": [
+            {"label": "Yes (Signs of Shock)", "next_node_id": "node_shock_active"},
+            {"label": "No (Stable)", "next_node_id": "node_shock_stable"}
+          ]
+        },
+        {
+          "node_id": "node_shock_active",
+          "type": "action",
+          "text": "1. Call emergency services immediately.\n2. Lay them flat on their back and elevate their feet/legs about 12 inches (unless head, neck, spine injury or pain is present).\n3. Keep them warm and insulated with a blanket, coat, or space wrap.\n4. Loosen any constrictive clothing around their neck, chest, or waist.\n5. Do NOT give them food or water to drink (risk of choking/aspiration).\n6. Monitor their breathing and pulse frequency constantly.",
+          "answers": []
+        },
+        {
+          "node_id": "node_shock_stable",
+          "type": "action",
+          "text": "1. Allow them to sit or lie down comfortably in a calm, warm spot.\n2. Treat any visible peripheral wounds (such as direct compression for minor bleeding).\n3. Keep inspecting their pulse, breathing, and complexion for any changing signs of shock.",
+          "answers": []
+        }
+      ]
+    },
+    {
+      "id": "e_electrocution",
+      "title": "Electrocution",
+      "icon": "⚡",
+      "nodes": [
+        {
+          "node_id": "node_1",
+          "type": "question",
+          "text": "Is the person still in physical contact with the live electrical current source?",
+          "answers": [
+            {"label": "Yes (In contact)", "next_node_id": "node_electro_danger"},
+            {"label": "No (Clear of source)", "next_node_id": "node_electro_clear"}
+          ]
+        },
+        {
+          "node_id": "node_electro_danger",
+          "type": "action",
+          "text": "1. DO NOT touch the person directly with your hands!\n2. Disconnect/shut off the main circuit breaker/power source immediately if you can safely.\n3. If power cannot be turned off, stand on a dry, non-conducting surface (wooden board, rubber mat).\n4. Use a dry, non-conducting object (wooden broom handle, plastic chair, dry rope) to push the power source away or pull the victim clear.\n5. Call emergency services immediately.",
+          "answers": []
+        },
+        {
+          "node_id": "node_electro_clear",
+          "type": "question",
+          "text": "Is the rescued person conscious and breathing normally?",
+          "answers": [
+            {"label": "Not breathing / No response", "next_node_id": "node_electro_cpr"},
+            {"label": "Conscious & breathing", "next_node_id": "node_electro_burns"}
+          ]
+        },
+        {
+          "node_id": "node_electro_cpr",
+          "type": "action",
+          "text": "1. Call emergency services immediately.\n2. Start high-quality CPR (30 chest compressions, 2 rescue breaths).\n3. Locate and install an AED if accessible.\n4. Minimize physical disturbance until paramedic arrival.",
+          "answers": []
+        },
+        {
+          "node_id": "node_electro_burns",
+          "type": "action",
+          "text": "1. Help the person lie down, elevate their legs if not injured, and cover them to retain body heat (treat for shock).\n2. Gently cover the visible entrance and exit electrical burn entry points with sterile, non-stick gauze.\n3. DO NOT apply oils, ointment, or cold water to the electrical burns.\n4. Call emergency services; internal organ assessment is critical for electrocution.",
+          "answers": []
+        }
+      ]
+    },
+    {
+      "id": "e_broken_limb",
+      "title": "Broken Limb / Fracture",
+      "icon": "🦴",
+      "nodes": [
+        {
+          "node_id": "node_1",
+          "type": "question",
+          "text": "Is bone visible / protruding from skin, or is there severe active bleeding?",
+          "answers": [
+            {"label": "Yes (Open Fracture)", "next_node_id": "node_limb_severe"},
+            {"label": "No (Closed Fracture)", "next_node_id": "node_limb_closed"}
+          ]
+        },
+        {
+          "node_id": "node_limb_severe",
+          "type": "action",
+          "text": "1. Call emergency services immediately.\n2. Cover the wound with a clean sterile dressing.\n3. Apply direct pressure to control bleeding (do not press directly on any exposed bone or force it back!).\n4. Immobilize the limb gently using support; do not attempt to straighten or rearrange the limb.",
+          "answers": []
+        },
+        {
+          "node_id": "node_limb_closed",
+          "type": "question",
+          "text": "Is there severe swelling, extreme deformity, or total inability to bear weight or move?",
+          "answers": [
+            {"label": "Yes", "next_node_id": "node_limb_splint"},
+            {"label": "No (Possible Sprain)", "next_node_id": "node_limb_ice"}
+          ]
+        },
+        {
+          "node_id": "node_limb_splint",
+          "type": "action",
+          "text": "1. Keep the limb as steady as possible. Do NOT try to reset or align the bone.\n2. Splint the joint above and below the fracture site using rigid materials (rolled newspapers, wood boards, cardboard) padded with clean cloths.\n3. Secure the splint with tape, bandages, or cloth strips, but not too tightly (check pulses regularly).\n4. Apply wrapped ice packs to minimize swelling.\n5. Seek professional orthopaedic/emergency services.",
+          "answers": []
+        },
+        {
+          "node_id": "node_limb_ice",
+          "type": "action",
+          "text": "1. Rest the injured extremity.\n2. Apply ice wrapped in a towel for 15-20 minutes at a time.\n3. Compress with an elastic bandage without choking arterial blood flow.\n4. Elevate the injured area above heart level and look for any worsening symptoms.",
+          "answers": []
+        }
+      ]
+    },
+    {
+      "id": "e_head_injury",
+      "title": "Head Injury & Concussion",
+      "icon": "🤕",
+      "nodes": [
+        {
+          "node_id": "node_1",
+          "type": "question",
+          "text": "Did they lose consciousness, throw up, have a seizure, or show severe confusion/slurred speech?",
+          "answers": [
+            {"label": "Yes (Severe Signs)", "next_node_id": "node_head_severe"},
+            {"label": "No (Mild Impact)", "next_node_id": "node_head_mild"}
+          ]
+        },
+        {
+          "node_id": "node_head_severe",
+          "type": "action",
+          "text": "1. Call emergency services immediately.\n2. Keep them completely still. Support their head & neck to prevent any movement in case of spinal injury.\n3. Stop any scalp bleeding by pressing a clean cloth firmly (unless you suspect a skull fracture—then do not press, just drape gently).\n4. Focus on breathing monitoring; do NOT shake or try to awaken with fluids.",
+          "answers": []
+        },
+        {
+          "node_id": "node_head_mild",
+          "type": "action",
+          "text": "1. Apply a cold compress wrapped in a towel to reduce bump swelling.\n2. Have them rest in a quiet, shadowy room with no screen time.\n3. Observe them closely for 24-48 hours. If they develop vomiting, worsening headache, pupillary imbalance, or extreme drowsiness, seek immediate emergency help.",
+          "answers": []
+        }
+      ]
+    },
+    {
+      "id": "e_heart_attack",
+      "title": "Heart Attack",
+      "icon": "🫀",
+      "nodes": [
+        {
+          "node_id": "node_1",
+          "type": "question",
+          "text": "Are they experiencing heavy chest pressure/tightness, pain radiating to arm/jaw, or extreme shortness of breath?",
+          "answers": [
+            {"label": "Yes (Potential Heart Attack)", "next_node_id": "node_heart_attack_assess"},
+            {"label": "No", "next_node_id": "node_heart_mild"}
+          ]
+        },
+        {
+          "node_id": "node_heart_attack_assess",
+          "type": "question",
+          "text": "Is the person conscious, and able to swallow safely?",
+          "answers": [
+            {"label": "Yes (Conscious)", "next_node_id": "node_heart_aspirin_yes"},
+            {"label": "No (Unresponsive)", "next_node_id": "node_heart_unconscious"}
+          ]
+        },
+        {
+          "node_id": "node_heart_aspirin_yes",
+          "type": "action",
+          "text": "1. Call emergency services immediately!\n2. Place them in a comfortable semi-sitting position (W-position with knees bent) to ease cardiac stress.\n3. Loosen tight collars, ties, or belts.\n4. Administer one regular aspirin (325mg) or 4 baby aspirins (81mg each) if they are not allergic. Have them Chew it before swallowing (works faster).\n5. Keep them calm and warm while staying by their side.",
+          "answers": []
+        },
+        {
+          "node_id": "node_heart_unconscious",
+          "type": "action",
+          "text": "1. Call emergency services immediately.\n2. Start CPR immediately (30 high-frequency chest compressions, 2 deep rescue breaths).\n3. Procure an AED close by and apply pads according to instructions as soon as it arrives.",
+          "answers": []
+        },
+        {
+          "node_id": "node_heart_mild",
+          "type": "action",
+          "text": "1. Encourage quiet rest in a comfortable environment.\n2. Monitor for chest pain onset or shortness of breath changes.\n3. Seek standard medical outpatient screening if discomfort persists or worsens.",
+          "answers": []
+        }
+      ]
+    }
+  ]
+}

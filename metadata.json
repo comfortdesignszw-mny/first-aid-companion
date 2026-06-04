@@ -1,0 +1,6 @@
+{
+  "name": "Comfort FirstAid Companion",
+  "description": "An offline-first, lightweight first-aid decision assistant and personal medical ID manager.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
