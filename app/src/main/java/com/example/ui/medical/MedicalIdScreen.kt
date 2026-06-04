@@ -71,11 +71,15 @@ import androidx.compose.ui.unit.sp
 import com.example.data.MedicalId
 import kotlinx.coroutines.launch
 
+import com.example.ui.components.drawStylisedScrollbar
+import com.example.ui.components.AppFooter
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MedicalIdScreen(
     medicalId: MedicalId,
     onSaveMedicalId: (String, String, String, String, String, String, String, String, String, String, String) -> Unit,
+    onDialContact: (String) -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
@@ -124,6 +128,7 @@ fun MedicalIdScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
+            .drawStylisedScrollbar(scrollState)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
@@ -601,6 +606,9 @@ fun MedicalIdScreen(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        AppFooter(onDialContact = onDialContact)
     }
 }
 

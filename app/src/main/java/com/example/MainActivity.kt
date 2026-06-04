@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,6 +19,13 @@ import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -51,6 +59,8 @@ import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.triage.TriageScreen
 import com.example.ui.triage.TriageViewModel
 import com.example.ui.triage.PanicScreen
+import com.example.ui.inventory.InventoryScreen
+import androidx.compose.material.icons.filled.MedicalServices
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,7 +76,132 @@ class MainActivity : ComponentActivity() {
 }
 
 enum class AppDestination {
-    TRIAGE, PANIC, MEDICAL_ID
+    TRIAGE, PANIC, INVENTORY, MEDICAL_ID
+}
+
+@Composable
+fun NavigationHeader(
+    currentTab: AppDestination,
+    activeScenario: com.example.data.EmergencyScenario?,
+    currentNode: com.example.data.TriageNode?,
+    canGoBackNode: Boolean,
+    onNavigateHome: () -> Unit,
+    onNavigateBack: () -> Unit,
+    onCancelActiveFlow: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF1C1B1F)) // Deep dark color
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                val showBack = currentTab != AppDestination.TRIAGE || activeScenario != null
+                if (showBack) {
+                    IconButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .testTag("nav_back_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Navigate Back",
+                            tint = Color(0xFFD32F2F)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(Color(0xFF2D0A0A), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocalHospital,
+                            contentDescription = "Home icon",
+                            tint = Color(0xFFD32F2F),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                }
+
+                Column {
+                    val pathText = when {
+                        activeScenario != null -> {
+                            val activeStepNum = if (currentNode != null) " - Step ${currentNode.nodeId.replace("node_", "")}" else ""
+                            "Home > First Aid > ${activeScenario.title}$activeStepNum"
+                        }
+                        currentTab == AppDestination.PANIC -> "Home > Panic System"
+                        currentTab == AppDestination.INVENTORY -> "Home > First-Aid Inventory"
+                        currentTab == AppDestination.MEDICAL_ID -> "Home > Medical ID"
+                        else -> "Home > Triage Dashboard"
+                    }
+                    
+                    Text(
+                        text = "COMFORT FIRST AID",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFFD32F2F),
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.2.sp
+                    )
+                    Text(
+                        text = pathText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.LightGray,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (activeScenario != null) {
+                    IconButton(
+                        onClick = onCancelActiveFlow,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .testTag("nav_cancel_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cancel Active Flow",
+                            tint = Color.LightGray
+                        )
+                    }
+                } else if (currentTab != AppDestination.TRIAGE) {
+                    IconButton(
+                        onClick = onNavigateHome,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .testTag("nav_home_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Home,
+                            contentDescription = "Navigate to Home Page",
+                            tint = Color.LightGray
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color(0xFF2B2930))
+        )
+    }
 }
 
 @Composable
@@ -77,12 +212,39 @@ fun MainAppScaffold(
     var currentTab by remember { mutableStateOf(AppDestination.TRIAGE) }
     val snackbarHostState = remember { SnackbarHostState() }
     val activeScenario by viewModel.activeScenario.collectAsState()
+    val currentNode by viewModel.currentNode.collectAsState()
     val medicalId by viewModel.medicalId.collectAsState()
     var showMainActivityPhoneCallDialog by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        topBar = {
+            NavigationHeader(
+                currentTab = currentTab,
+                activeScenario = activeScenario,
+                currentNode = currentNode,
+                canGoBackNode = viewModel.canGoBackNode(),
+                onNavigateHome = {
+                    currentTab = AppDestination.TRIAGE
+                    viewModel.exitTriage()
+                },
+                onNavigateBack = {
+                    if (activeScenario != null) {
+                        if (viewModel.canGoBackNode()) {
+                            viewModel.goBackNode()
+                        } else {
+                            viewModel.exitTriage()
+                        }
+                    } else if (currentTab != AppDestination.TRIAGE) {
+                        currentTab = AppDestination.TRIAGE
+                    }
+                },
+                onCancelActiveFlow = {
+                    viewModel.exitTriage()
+                }
+            )
+        },
         bottomBar = {
             // Hide bottom navigation bar when inside active trauma triage sequence to prevent accidental exits!
             if (activeScenario == null) {
@@ -126,6 +288,24 @@ fun MainAppScaffold(
                     )
 
                     NavigationBarItem(
+                        selected = currentTab == AppDestination.INVENTORY,
+                        onClick = { currentTab = AppDestination.INVENTORY },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.MedicalServices,
+                                contentDescription = "Tab First Aid Inventory"
+                            )
+                        },
+                        label = { Text("Inventory") },
+                        modifier = Modifier.testTag("tab_inventory"),
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Color.White,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+
+                    NavigationBarItem(
                         selected = currentTab == AppDestination.MEDICAL_ID,
                         onClick = { currentTab = AppDestination.MEDICAL_ID },
                         icon = {
@@ -159,8 +339,15 @@ fun MainAppScaffold(
                     )
                 }
                 AppDestination.PANIC -> {
+                    val clinics by viewModel.clinics.collectAsState()
+                    val homeBase by viewModel.homeBase.collectAsState()
                     PanicScreen(
                         medicalId = medicalId,
+                        clinics = clinics,
+                        homeBase = homeBase,
+                        onAddClinic = { name, lat, lon, note -> viewModel.addHospitalClinic(name, lat, lon, note) },
+                        onDeleteClinic = { viewModel.deleteHospitalClinic(it) },
+                        onSaveHomeBase = { name, lat, lon -> viewModel.saveHomeBase(name, lat, lon) },
                         onDialEmergency = { phoneNumber ->
                             showMainActivityPhoneCallDialog = phoneNumber
                         },
@@ -170,12 +357,22 @@ fun MainAppScaffold(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+                AppDestination.INVENTORY -> {
+                    val inventoryItems by viewModel.inventory.collectAsState()
+                    InventoryScreen(
+                        inventoryItems = inventoryItems,
+                        onToggleItem = { itemId, isOwned -> viewModel.toggleInventoryItemOwned(itemId, isOwned) },
+                        onDialContact = { phoneNumber -> showMainActivityPhoneCallDialog = phoneNumber },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
                 AppDestination.MEDICAL_ID -> {
                     MedicalIdScreen(
                         medicalId = medicalId,
                         onSaveMedicalId = { name, blood, allergies, contact, regional, c1n, c1p, c2n, c2p, c3n, c3p ->
                             viewModel.updateMedicalId(name, blood, allergies, contact, regional, c1n, c1p, c2n, c2p, c3n, c3p)
                         },
+                        onDialContact = { phoneNumber -> showMainActivityPhoneCallDialog = phoneNumber },
                         snackbarHostState = snackbarHostState,
                         modifier = Modifier.fillMaxSize()
                     )

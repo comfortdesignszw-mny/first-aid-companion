@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -56,11 +57,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.MedicalId
+import com.example.data.HospitalClinic
+import com.example.data.HomeBase
+import com.example.ui.components.NearestCareDialog
+import com.example.ui.components.AppFooter
 import kotlinx.coroutines.delay
+
+import com.example.ui.components.drawStylisedScrollbar
 
 @Composable
 fun PanicScreen(
     medicalId: MedicalId,
+    clinics: List<HospitalClinic>,
+    homeBase: HomeBase,
+    onAddClinic: (String, Double, Double, String) -> Unit,
+    onDeleteClinic: (String) -> Unit,
+    onSaveHomeBase: (String, Double, Double) -> Unit,
     onDialEmergency: (String) -> Unit,
     onNavigateToMedicalId: () -> Unit,
     modifier: Modifier = Modifier
@@ -68,6 +80,7 @@ fun PanicScreen(
     var isActivated by remember { mutableStateOf(false) }
     var activeStep by remember { mutableIntStateOf(0) }
     val scrollState = rememberScrollState()
+    var showPanicNearestCare by remember { mutableStateOf(false) }
 
     // Circular ripple pulse animation of panic button
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -113,6 +126,7 @@ fun PanicScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
+            .drawStylisedScrollbar(scrollState)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
@@ -213,7 +227,54 @@ fun PanicScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Find Nearest Care Card button when dormant
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showPanicNearestCare = true }
+                    .testTag("panic_find_nearest_care"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1111)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4A1F1F))
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(Color(0xFF381B1B), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocalHospital,
+                            contentDescription = "Find nearest medical care pointer",
+                            tint = Color(0xFFEF5350),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Find Nearest Care".uppercase(),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFEF5350),
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "View offline coordinates list of clinics & emergency spaces",
+                            fontSize = 12.sp,
+                            color = Color.LightGray
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Current Configured Broadcast list
             Card(
@@ -454,6 +515,20 @@ fun PanicScreen(
             ) {
                 Text("I am Safe (Stop Broadcast)", fontWeight = FontWeight.Bold)
             }
+
+            if (showPanicNearestCare) {
+                NearestCareDialog(
+                    clinics = clinics,
+                    homeBase = homeBase,
+                    onAddClinic = onAddClinic,
+                    onDeleteClinic = onDeleteClinic,
+                    onSaveHomeBase = onSaveHomeBase,
+                    onDismissRequest = { showPanicNearestCare = false }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            AppFooter(onDialContact = onDialEmergency)
         }
     }
 }

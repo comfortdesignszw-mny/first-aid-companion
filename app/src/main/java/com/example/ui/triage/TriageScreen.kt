@@ -23,9 +23,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,6 +36,11 @@ import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeMute
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -50,6 +52,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.example.ui.components.BodyVisualization
+import com.example.ui.components.BodyPart
+import com.example.ui.components.AppFooter
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -70,6 +75,12 @@ import com.example.data.Answer
 import com.example.data.EmergencyScenario
 import com.example.data.MedicalId
 import com.example.data.TriageNode
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicOff
+import com.example.data.HospitalClinic
+import com.example.data.InventoryItem
+import com.example.ui.components.NearestCareDialog
+import com.example.ui.components.drawStylisedScrollbar
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -82,7 +93,19 @@ fun TriageScreen(
     val currentNode by viewModel.currentNode.collectAsState()
     val medicalId by viewModel.medicalId.collectAsState()
 
+    // Interactive updates
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val selectedBodyPart by viewModel.selectedBodyPart.collectAsState()
+    val isTtsSpeaking by viewModel.isTtsSpeaking.collectAsState()
+    val autoReadEnabled by viewModel.autoReadEnabled.collectAsState()
+
+    val clinics by viewModel.clinics.collectAsState()
+    val homeBase by viewModel.homeBase.collectAsState()
+    val isVoiceListening by viewModel.isVoiceListening.collectAsState()
+    val lastVoiceCommand by viewModel.lastVoiceCommand.collectAsState()
+
     var showPhoneCallMockDialog by remember { mutableStateOf<String?>(null) }
+    var showNearestCareOverlay by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
         AnimatedContent(
@@ -102,17 +125,36 @@ fun TriageScreen(
                 // Scenario Selection Screen (Dashboard)
                 TriageDashboard(
                     emergencies = emergencies,
+                    searchQuery = searchQuery,
+                    onSearchQueryChanged = { viewModel.updateSearchQuery(it) },
+                    selectedBodyPart = selectedBodyPart,
+                    onBodyPartSelected = { viewModel.selectBodyPart(it) },
                     onSelectScenario = { viewModel.startTriage(it) },
                     medicalId = medicalId,
-                    onCallHotline = { showPhoneCallMockDialog = it }
+                    onCallHotline = { showPhoneCallMockDialog = it },
+                    onFindNearestCare = { showNearestCareOverlay = true }
                 )
             } else {
                 // Active Triage Traversal Player
+                val currentText = currentNode?.text ?: ""
+                val missingSupplies = viewModel.getMissingSuppliesForActiveScenario()
+                val urgency = viewModel.getUrgencyLevelOfNode(currentNode)
+
                 TriageFlowPlayer(
                     scenario = scenario,
                     currentNode = currentNode,
                     canGoBack = viewModel.canGoBackNode(),
                     medicalId = medicalId,
+                    isTtsSpeaking = isTtsSpeaking,
+                    autoReadEnabled = autoReadEnabled,
+                    isVoiceListening = isVoiceListening,
+                    lastVoiceCommand = lastVoiceCommand,
+                    missingSupplies = missingSupplies,
+                    urgency = urgency,
+                    onToggleVoiceListening = { viewModel.toggleVoiceListening() },
+                    onSimulateVoiceCommand = { viewModel.processVoiceCommand(it) },
+                    onToggleAutoRead = { viewModel.toggleAutoRead() },
+                    onReplaySpeak = { viewModel.speakText(currentText) },
                     onSelectAnswer = { viewModel.selectAnswer(it) },
                     onGoBack = { viewModel.goBackNode() },
                     onRestart = { viewModel.restartTriage() },
@@ -120,6 +162,17 @@ fun TriageScreen(
                     onCallEmergency = { showPhoneCallMockDialog = it }
                 )
             }
+        }
+
+        if (showNearestCareOverlay) {
+            NearestCareDialog(
+                clinics = clinics,
+                homeBase = homeBase,
+                onAddClinic = { name, lat, lon, note -> viewModel.addHospitalClinic(name, lat, lon, note) },
+                onDeleteClinic = { viewModel.deleteHospitalClinic(it) },
+                onSaveHomeBase = { name, lat, lon -> viewModel.saveHomeBase(name, lat, lon) },
+                onDismissRequest = { showNearestCareOverlay = false }
+            )
         }
 
         // Mock Phone Call Dialog (since offline-first with no direct call system permission requirement)
@@ -185,16 +238,46 @@ fun TriageScreen(
 @Composable
 fun TriageDashboard(
     emergencies: List<EmergencyScenario>,
+    searchQuery: String,
+    onSearchQueryChanged: (String) -> Unit,
+    selectedBodyPart: BodyPart,
+    onBodyPartSelected: (BodyPart) -> Unit,
     onSelectScenario: (EmergencyScenario) -> Unit,
     medicalId: MedicalId,
-    onCallHotline: (String) -> Unit
+    onCallHotline: (String) -> Unit,
+    onFindNearestCare: () -> Unit
 ) {
     val scrollState = rememberScrollState()
+
+    // Filter using search query and anatomical body part selections
+    val filteredBySearch = if (searchQuery.isBlank()) {
+        emergencies
+    } else {
+        emergencies.filter { scenario ->
+            scenario.title.contains(searchQuery, ignoreCase = true) ||
+            scenario.nodes.any { it.text.contains(searchQuery, ignoreCase = true) }
+        }
+    }
+
+    val finalFilteredEmergencies = if (selectedBodyPart == BodyPart.ALL) {
+        filteredBySearch
+    } else {
+        filteredBySearch.filter { scenario ->
+            when (selectedBodyPart) {
+                BodyPart.HEAD -> listOf("e_head_injury", "e_epilepsy", "e_choking").contains(scenario.id)
+                BodyPart.CHEST -> listOf("e_heart_attack", "e_cpr", "e_choking").contains(scenario.id)
+                BodyPart.LIMBS -> listOf("e_broken_limb", "e_bleeding").contains(scenario.id)
+                BodyPart.GENERAL -> listOf("e_burns", "e_shock", "e_electrocution").contains(scenario.id)
+                else -> true
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
+            .drawStylisedScrollbar(scrollState)
             .padding(16.dp),
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -239,7 +322,7 @@ fun TriageDashboard(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp)
+                .padding(bottom = 16.dp)
                 .clickable { onCallHotline(medicalId.regionalEmergencyNumber.ifEmpty { "911" }) }
                 .testTag("emergency_hotline_card"),
             colors = CardDefaults.cardColors(
@@ -295,8 +378,115 @@ fun TriageDashboard(
             }
         }
 
+        // FIND NEAREST OFFLINE CARE INDEX CARD Button
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp)
+                .clickable { onFindNearestCare() }
+                .testTag("action_find_nearest_care_card"),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF1E1111)
+            ),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, Color(0xFF4A1F1F))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color(0xFF381B1B), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocalHospital,
+                            contentDescription = "Find offline care index",
+                            tint = Color(0xFFEF5350),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "FIND NEAREST CARE",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFEF5350),
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "Browse & save offline coordinate indices",
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 13.sp,
+                            color = Color.LightGray
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = Color.LightGray.copy(alpha = 0.5f)
+                )
+            }
+        }
+
+        // SEARCH BAR (Searchable Scenarios Index)
+        androidx.compose.material3.OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchQueryChanged,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp)
+                .testTag("scenario_search_input"),
+            placeholder = { Text("Quick search (e.g. Epilepsy, Shock, CPR)...", color = Color.Gray, fontSize = 14.sp) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = Color(0xFFEF5350)
+                )
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { onSearchQueryChanged("") }) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear search",
+                            tint = Color.LightGray
+                        )
+                    }
+                }
+            },
+            singleLine = true,
+            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFFD32F2F),
+                unfocusedBorderColor = Color(0xFF321919),
+                focusedContainerColor = Color(0xFF140D0D),
+                unfocusedContainerColor = Color(0xFF100909),
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White
+            ),
+            shape = RoundedCornerShape(12.dp)
+        )
+
+        // INTERACTIVE HUMAN BODY ANATOMY VISUALIZATION
+        BodyVisualization(
+            selectedPart = selectedBodyPart,
+            onPartSelected = onBodyPartSelected,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 20.dp)
+        )
+
         Text(
-            text = "Select an Emergency Scenario",
+            text = if (selectedBodyPart != BodyPart.ALL) "Filtered Scenarios Profile" else "Select an Emergency Scenario",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
@@ -326,17 +516,44 @@ fun TriageDashboard(
                     )
                 }
             }
-        } else {
-            // Grid layout of triage cards
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(1),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+        } else if (finalFilteredEmergencies.isEmpty()) {
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(380.dp) // bounded height, scrollable within
-                    .testTag("emergencies_grid")
+                    .height(150.dp),
+                contentAlignment = Alignment.Center
             ) {
-                items(emergencies) { scenario ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = "No scenarios matched",
+                        tint = Color(0xFFD32F2F).copy(alpha = 0.6f),
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "No guidelines matched your selection.",
+                        color = Color.LightGray,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = "Try clearing search or tapping another region",
+                        color = Color.Gray,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+        } else {
+            // Elegant list layout of triage cards avoiding nested scrolls for absolute smooth scrolling
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("emergencies_grid"),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                finalFilteredEmergencies.forEach { scenario ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -403,6 +620,9 @@ fun TriageDashboard(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        AppFooter(onDialContact = onCallHotline)
     }
 }
 
@@ -412,6 +632,16 @@ fun TriageFlowPlayer(
     currentNode: TriageNode?,
     canGoBack: Boolean,
     medicalId: MedicalId,
+    isTtsSpeaking: Boolean,
+    autoReadEnabled: Boolean,
+    isVoiceListening: Boolean,
+    lastVoiceCommand: String,
+    missingSupplies: List<InventoryItem>,
+    urgency: String,
+    onToggleVoiceListening: () -> Unit,
+    onSimulateVoiceCommand: (String) -> Unit,
+    onToggleAutoRead: () -> Unit,
+    onReplaySpeak: () -> Unit,
     onSelectAnswer: (Answer) -> Unit,
     onGoBack: () -> Unit,
     onRestart: () -> Unit,
@@ -470,12 +700,289 @@ fun TriageFlowPlayer(
             )
         }
 
+        // Relative urgency level indicator badge
+        val badgeColor = when (urgency) {
+            "CRITICAL" -> Color(0xFFD32F2F)
+            "HIGH" -> Color(0xFFF57C00)
+            else -> Color(0xFF1976D2)
+        }
+        Box(
+            modifier = Modifier
+                .padding(vertical = 4.dp)
+                .background(badgeColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                .border(1.dp, badgeColor, RoundedCornerShape(8.dp))
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .testTag("urgency_badge")
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .background(badgeColor, CircleShape)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "$urgency PROTOCOL CUE INSTRUCTIONS ACTIVE",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = badgeColor,
+                    letterSpacing = 1.sp
+                )
+            }
+        }
+
+        // Supply Alerts Card
+        if (missingSupplies.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+                    .testTag("missing_supply_warning_banner"),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF381414)),
+                border = BorderStroke(1.2.dp, Color(0xFFEF5350)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Missing Equipment Alert",
+                            tint = Color(0xFFEF5350),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "MISSING FIRST-AID SUPPLIES",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFFEF5350),
+                            letterSpacing = 1.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "You are missing essential equipment at home required for this scenario:",
+                        fontSize = 11.sp,
+                        color = Color.LightGray
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    missingSupplies.forEach { item ->
+                        Text(
+                            text = "❌ Missing: ${item.name}",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFEF5350)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Voice Activation Companion Controller Panel
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .testTag("voice_commander_panel"),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isVoiceListening) Color(0xFF142414) else Color(0xFF1E1111)
+            ),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, if (isVoiceListening) Color(0xFF81C784) else Color(0xFF4A1F1F))
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(
+                                    if (isVoiceListening) Color(0xFF2E7D32) else Color(0xFF381B1B),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isVoiceListening) Icons.Default.Mic else Icons.Default.MicOff,
+                                contentDescription = "Voice microphone toggle state indicator",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "HANDS-FREE VOICE NAVIGATION",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isVoiceListening) Color(0xFF81C784) else Color(0xFFEF5350),
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = if (isVoiceListening) "Listening... say NEXT / BACK / REPEAT" else "Voice Control is paused. Toggle switch to listen.",
+                                fontSize = 11.sp,
+                                color = Color.LightGray
+                            )
+                        }
+                    }
+
+                    androidx.compose.material3.Switch(
+                        checked = isVoiceListening,
+                        onCheckedChange = { onToggleVoiceListening() },
+                        colors = androidx.compose.material3.SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = Color(0xFF2E7D32)
+                        ),
+                        modifier = Modifier.testTag("action_toggle_mic_listener")
+                    )
+                }
+
+                if (lastVoiceCommand.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Last simulated or spoken command: \"${lastVoiceCommand.uppercase()}\"",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF81C784),
+                        modifier = Modifier.testTag("last_voice_command_display")
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("SIMULATE WORDS:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                    
+                    listOf("Next", "Back", "Repeat").forEach { choice ->
+                        Box(
+                            modifier = Modifier
+                                .background(Color(0xFF2D2A33), RoundedCornerShape(8.dp))
+                                .border(1.dp, Color(0xFF49454F), RoundedCornerShape(8.dp))
+                                .clickable { onSimulateVoiceCommand(choice) }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                .testTag("simulate_voice_$choice")
+                        ) {
+                            Text(
+                                text = choice.uppercase(),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Step 1.5: Hands-Free Narrator Control Panel
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp)
+                .testTag("tts_control_panel"),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF1E1111)
+            ),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, Color(0xFF4A1F1F))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(
+                                if (isTtsSpeaking) Color(0xFFD32F2F) else Color(0xFF381B1B),
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val iconStatus = if (isTtsSpeaking) Icons.Default.VolumeUp else Icons.Default.VolumeOff
+                        Icon(
+                            imageVector = iconStatus,
+                            contentDescription = "Narrating status indication",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "HANDS-FREE ASSISTANCE",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFEF5350),
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = if (isTtsSpeaking) "Reading instructions aloud..." else "Voice auto-read is ${if (autoReadEnabled) "active" else "paused"}",
+                            fontSize = 11.sp,
+                            color = Color.LightGray
+                        )
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Toggle auto-read mode
+                    IconButton(
+                        onClick = onToggleAutoRead,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .testTag("action_toggle_tts_auto")
+                    ) {
+                        val autoIcon = if (autoReadEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff
+                        Icon(
+                            imageVector = autoIcon,
+                            contentDescription = "Toggle voice guidance",
+                            tint = if (autoReadEnabled) Color(0xFFEF5350) else Color.Gray,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    // Speak instruction on demand / Replay button
+                    IconButton(
+                        onClick = onReplaySpeak,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .testTag("action_replay_tts")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Repeat speech prompt",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+        }
+
         // Step 2: Content (Box matches Node state dynamically)
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(scrollState)
+                .drawStylisedScrollbar(scrollState)
                 .padding(vertical = 16.dp)
         ) {
             if (currentNode == null) {
