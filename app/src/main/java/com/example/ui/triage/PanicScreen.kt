@@ -70,10 +70,11 @@ fun PanicScreen(
     medicalId: MedicalId,
     clinics: List<HospitalClinic>,
     homeBase: HomeBase,
-    onAddClinic: (String, Double, Double, String) -> Unit,
+    onAddClinic: (String, Double, Double, String, String, String) -> Unit,
     onDeleteClinic: (String) -> Unit,
     onSaveHomeBase: (String, Double, Double) -> Unit,
     onDialEmergency: (String) -> Unit,
+    onTriggerOfflinePanicSMS: (List<String>) -> Unit,
     onNavigateToMedicalId: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -118,6 +119,12 @@ fun PanicScreen(
             while (activeStep < 5) {
                 delay(1500)
                 activeStep++
+                if (activeStep == 4) {
+                    val numbersToAlert = contactsList.map { it.second }.filter { it.isNotBlank() }
+                    if (numbersToAlert.isNotEmpty()) {
+                        onTriggerOfflinePanicSMS(numbersToAlert)
+                    }
+                }
             }
         }
     }

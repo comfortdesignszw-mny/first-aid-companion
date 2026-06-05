@@ -168,7 +168,7 @@ fun TriageScreen(
             NearestCareDialog(
                 clinics = clinics,
                 homeBase = homeBase,
-                onAddClinic = { name, lat, lon, note -> viewModel.addHospitalClinic(name, lat, lon, note) },
+                onAddClinic = { name, lat, lon, note, address, contact -> viewModel.addHospitalClinic(name, lat, lon, note, address, contact) },
                 onDeleteClinic = { viewModel.deleteHospitalClinic(it) },
                 onSaveHomeBase = { name, lat, lon -> viewModel.saveHomeBase(name, lat, lon) },
                 onDismissRequest = { showNearestCareOverlay = false }

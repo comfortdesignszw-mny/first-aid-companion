@@ -66,9 +66,55 @@ import android.view.WindowManager
 import android.app.KeyguardManager
 import android.content.Context
 
+import android.telephony.SmsManager
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import android.widget.Toast
+
 class MainActivity : ComponentActivity() {
+    
+    private val SMS_PERMISSION_CODE = 1001
+
+    private fun triggerOfflinePanicSMS(contacts: List<String>) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
+            try {
+                val smsManager = SmsManager.getDefault()
+                val panicPayload = "APP_PANIC_ALERT:STATUS=ACTIVE:LAT=0.0:LNG=0.0"
+                for (number in contacts) {
+                    if (number.isNotBlank()) {
+                        smsManager.sendTextMessage(number, null, panicPayload, null, null)
+                    }
+                }
+                Toast.makeText(this, "Offline Panic SMS sent!", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        } else {
+            Toast.makeText(this, "Cannot send Panic SMS, permission denied.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Request SMS permissions for Offline panic alert
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.SEND_SMS,
+                    Manifest.permission.RECEIVE_SMS,
+                    Manifest.permission.READ_SMS,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ),
+                SMS_PERMISSION_CODE
+            )
+        }
         
         // Show application on lock screen
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
@@ -88,7 +134,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             MyApplicationTheme {
                 val viewModel: TriageViewModel = viewModel()
-                MainAppScaffold(viewModel = viewModel)
+                MainAppScaffold(
+                    viewModel = viewModel,
+                    onTriggerPanic = { contacts ->
+                        triggerOfflinePanicSMS(contacts)
+                    }
+                )
             }
         }
     }
@@ -226,6 +277,7 @@ fun NavigationHeader(
 @Composable
 fun MainAppScaffold(
     viewModel: TriageViewModel,
+    onTriggerPanic: (List<String>) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var currentTab by remember { mutableStateOf(AppDestination.TRIAGE) }
@@ -364,12 +416,13 @@ fun MainAppScaffold(
                         medicalId = medicalId,
                         clinics = clinics,
                         homeBase = homeBase,
-                        onAddClinic = { name, lat, lon, note -> viewModel.addHospitalClinic(name, lat, lon, note) },
+                        onAddClinic = { name, lat, lon, note, address, contact -> viewModel.addHospitalClinic(name, lat, lon, note, address, contact) },
                         onDeleteClinic = { viewModel.deleteHospitalClinic(it) },
                         onSaveHomeBase = { name, lat, lon -> viewModel.saveHomeBase(name, lat, lon) },
                         onDialEmergency = { phoneNumber ->
                             showMainActivityPhoneCallDialog = phoneNumber
                         },
+                        onTriggerOfflinePanicSMS = onTriggerPanic,
                         onNavigateToMedicalId = {
                             currentTab = AppDestination.MEDICAL_ID
                         },

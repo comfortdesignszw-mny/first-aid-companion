@@ -364,9 +364,9 @@ class TriageViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun addHospitalClinic(name: String, latitude: Double, longitude: Double, note: String) {
+    fun addHospitalClinic(name: String, latitude: Double, longitude: Double, note: String, address: String, contactNumber: String) {
         viewModelScope.launch {
-            hospitalCareStore.addClinic(name, latitude, longitude, note)
+            hospitalCareStore.addClinic(name, latitude, longitude, note, address, contactNumber)
         }
     }
 

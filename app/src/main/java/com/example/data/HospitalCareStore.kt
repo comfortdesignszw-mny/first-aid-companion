@@ -18,7 +18,9 @@ data class HospitalClinic(
     val name: String,
     val latitude: Double,
     val longitude: Double,
-    val note: String
+    val note: String,
+    val address: String = "",
+    val contactNumber: String = ""
 )
 
 data class HomeBase(
@@ -34,12 +36,7 @@ class HospitalCareStore(private val context: Context) {
         private val KEY_HOME_LAT = stringPreferencesKey("home_lat")
         private val KEY_HOME_LON = stringPreferencesKey("home_lon")
         
-        val DEFAULT_CLINICS = listOf(
-            HospitalClinic("def_1", "Downtown Trauma Medical Center", 34.0522, -118.2437, "24/7 ER Service, Trauma Level I"),
-            HospitalClinic("def_2", "Mercy Emergency Urgent Care", 34.0628, -118.2917, "Immediate non-life threatening assistance"),
-            HospitalClinic("def_3", "St. Jude Children Hospital Center", 34.0315, -118.2041, "Specialized pediatric triage care"),
-            HospitalClinic("def_4", "Community First Clinic & Pharmacy", 34.0782, -118.2604, "Basic resuscitation and oxygen supply")
-        )
+        val DEFAULT_CLINICS = emptyList<HospitalClinic>()
     }
 
     val clinicsFlow: Flow<List<HospitalClinic>> = context.hospitalCareDataStore.data.map { preferences ->
@@ -58,7 +55,9 @@ class HospitalCareStore(private val context: Context) {
                             name = obj.getString("name"),
                             latitude = obj.getDouble("latitude"),
                             longitude = obj.getDouble("longitude"),
-                            note = obj.optString("note", "")
+                            note = obj.optString("note", ""),
+                            address = obj.optString("address", ""),
+                            contactNumber = obj.optString("contactNumber", "")
                         )
                     )
                 }
@@ -85,7 +84,7 @@ class HospitalCareStore(private val context: Context) {
         }
     }
 
-    suspend fun addClinic(name: String, latitude: Double, longitude: Double, note: String) {
+    suspend fun addClinic(name: String, latitude: Double, longitude: Double, note: String, address: String, contactNumber: String) {
         context.hospitalCareDataStore.edit { preferences ->
             val currentJson = preferences[KEY_CUSTOM_CLINICS] ?: "[]"
             try {
@@ -96,6 +95,8 @@ class HospitalCareStore(private val context: Context) {
                     put("latitude", latitude)
                     put("longitude", longitude)
                     put("note", note)
+                    put("address", address)
+                    put("contactNumber", contactNumber)
                 }
                 array.put(newObj)
                 preferences[KEY_CUSTOM_CLINICS] = array.toString()

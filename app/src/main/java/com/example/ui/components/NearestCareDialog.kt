@@ -40,7 +40,7 @@ import kotlin.math.sqrt
 fun NearestCareDialog(
     clinics: List<HospitalClinic>,
     homeBase: com.example.data.HomeBase,
-    onAddClinic: (String, Double, Double, String) -> Unit,
+    onAddClinic: (String, Double, Double, String, String, String) -> Unit,
     onDeleteClinic: (String) -> Unit,
     onSaveHomeBase: (String, Double, Double) -> Unit,
     onDismissRequest: () -> Unit
@@ -50,6 +50,8 @@ fun NearestCareDialog(
     var latInput by remember { mutableStateOf("") }
     var lonInput by remember { mutableStateOf("") }
     var noteInput by remember { mutableStateOf("") }
+    var addressInput by remember { mutableStateOf("") }
+    var contactInput by remember { mutableStateOf("") }
     
     var selectedHeadingClinic by remember { mutableStateOf<HospitalClinic?>(null) }
     
@@ -348,6 +350,36 @@ fun NearestCareDialog(
                                         unfocusedContainerColor = Color(0xFF140D0D)
                                     )
                                 )
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                OutlinedTextField(
+                                    value = addressInput,
+                                    onValueChange = { addressInput = it },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("clinic_input_address"),
+                                    placeholder = { Text("Physical Address", fontSize = 12.sp) },
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = Color(0xFF140D0D),
+                                        unfocusedContainerColor = Color(0xFF140D0D)
+                                    )
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                OutlinedTextField(
+                                    value = contactInput,
+                                    onValueChange = { contactInput = it },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("clinic_input_contact"),
+                                    placeholder = { Text("Contact Number", fontSize = 12.sp) },
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = Color(0xFF140D0D),
+                                        unfocusedContainerColor = Color(0xFF140D0D)
+                                    )
+                                )
 
                                 Spacer(modifier = Modifier.height(10.dp))
                                 
@@ -356,11 +388,13 @@ fun NearestCareDialog(
                                         val latVal = latInput.toDoubleOrNull() ?: 0.0
                                         val lonVal = lonInput.toDoubleOrNull() ?: 0.0
                                         if (nameInput.isNotBlank() && latVal != 0.0 && lonVal != 0.0) {
-                                            onAddClinic(nameInput, latVal, lonVal, noteInput)
+                                            onAddClinic(nameInput, latVal, lonVal, noteInput, addressInput, contactInput)
                                             nameInput = ""
                                             latInput = ""
                                             lonInput = ""
                                             noteInput = ""
+                                            addressInput = ""
+                                            contactInput = ""
                                             showAddForm = false
                                         }
                                     },
@@ -504,12 +538,30 @@ fun NearestCareDialog(
                                             color = Color.Gray,
                                             lineHeight = 14.sp
                                         )
-                                        Text(
-                                            text = clinic.note,
-                                            fontSize = 11.sp,
-                                            color = Color.LightGray.copy(alpha = 0.8f),
-                                            lineHeight = 14.sp
-                                        )
+                                        if (clinic.address.isNotBlank()) {
+                                            Text(
+                                                text = clinic.address,
+                                                fontSize = 11.sp,
+                                                color = Color.LightGray.copy(alpha = 0.9f),
+                                                lineHeight = 14.sp
+                                            )
+                                        }
+                                        if (clinic.contactNumber.isNotBlank()) {
+                                            Text(
+                                                text = "Contact: ${clinic.contactNumber}",
+                                                fontSize = 11.sp,
+                                                color = Color(0xFF81C784),
+                                                lineHeight = 14.sp
+                                            )
+                                        }
+                                        if (clinic.note.isNotBlank()) {
+                                            Text(
+                                                text = clinic.note,
+                                                fontSize = 11.sp,
+                                                color = Color.LightGray.copy(alpha = 0.8f),
+                                                lineHeight = 14.sp
+                                            )
+                                        }
                                     }
                                     
                                     if (!isDefault) {

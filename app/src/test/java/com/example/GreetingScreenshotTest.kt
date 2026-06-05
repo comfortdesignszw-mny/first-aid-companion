@@ -33,7 +33,8 @@ class GreetingScreenshotTest {
       MyApplicationTheme {
         MedicalIdScreen(
           medicalId = mockMedicalId,
-          onSaveMedicalId = { _, _, _, _, _, _, _, _, _, _, _ -> }
+          onSaveMedicalId = { _, _, _, _, _, _, _, _, _, _, _ -> },
+          onDialContact = { _ -> }
         )
       }
     }
