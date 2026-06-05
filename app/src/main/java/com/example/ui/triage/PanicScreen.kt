@@ -530,6 +530,7 @@ fun PanicScreen(
                     onAddClinic = onAddClinic,
                     onDeleteClinic = onDeleteClinic,
                     onSaveHomeBase = onSaveHomeBase,
+                    onDialContact = onDialEmergency,
                     onDismissRequest = { showPanicNearestCare = false }
                 )
             }

@@ -86,6 +86,7 @@ import com.example.ui.components.drawStylisedScrollbar
 @Composable
 fun TriageScreen(
     viewModel: TriageViewModel,
+    onDialContact: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val emergencies by viewModel.emergencies.collectAsState()
@@ -171,6 +172,7 @@ fun TriageScreen(
                 onAddClinic = { name, lat, lon, note, address, contact -> viewModel.addHospitalClinic(name, lat, lon, note, address, contact) },
                 onDeleteClinic = { viewModel.deleteHospitalClinic(it) },
                 onSaveHomeBase = { name, lat, lon -> viewModel.saveHomeBase(name, lat, lon) },
+                onDialContact = onDialContact,
                 onDismissRequest = { showNearestCareOverlay = false }
             )
         }

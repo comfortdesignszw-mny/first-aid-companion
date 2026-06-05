@@ -96,12 +96,29 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun forceCallEmergencyNumber(phoneNumber: String) {
+        try {
+            val intent = if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+                android.content.Intent(android.content.Intent.ACTION_CALL)
+            } else {
+                android.content.Intent(android.content.Intent.ACTION_DIAL)
+            }
+            intent.data = android.net.Uri.parse("tel:$phoneNumber")
+            intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+            startActivity(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Failed to place call", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Request SMS permissions for Offline panic alert
+        // Request SMS & Phone permissions for Offline panic alert and emergency calls
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(
@@ -110,6 +127,7 @@ class MainActivity : ComponentActivity() {
                     Manifest.permission.SEND_SMS,
                     Manifest.permission.RECEIVE_SMS,
                     Manifest.permission.READ_SMS,
+                    Manifest.permission.CALL_PHONE,
                     Manifest.permission.POST_NOTIFICATIONS
                 ),
                 SMS_PERMISSION_CODE
@@ -138,6 +156,9 @@ class MainActivity : ComponentActivity() {
                     viewModel = viewModel,
                     onTriggerPanic = { contacts ->
                         triggerOfflinePanicSMS(contacts)
+                    },
+                    onForceDial = { phoneNumber ->
+                        forceCallEmergencyNumber(phoneNumber)
                     }
                 )
             }
@@ -278,6 +299,7 @@ fun NavigationHeader(
 fun MainAppScaffold(
     viewModel: TriageViewModel,
     onTriggerPanic: (List<String>) -> Unit,
+    onForceDial: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var currentTab by remember { mutableStateOf(AppDestination.TRIAGE) }
@@ -406,6 +428,7 @@ fun MainAppScaffold(
                 AppDestination.TRIAGE -> {
                     TriageScreen(
                         viewModel = viewModel,
+                        onDialContact = { phoneNumber -> showMainActivityPhoneCallDialog = phoneNumber },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -499,7 +522,10 @@ fun MainAppScaffold(
                 },
                 confirmButton = {
                     Button(
-                        onClick = { showMainActivityPhoneCallDialog = null },
+                        onClick = { 
+                            showMainActivityPhoneCallDialog = null
+                            onForceDial(phoneNumber)
+                        },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB3261E)),
                         modifier = Modifier.testTag("dialer_confirm_button")
                     ) {

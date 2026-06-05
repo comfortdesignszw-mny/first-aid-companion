@@ -244,7 +244,8 @@ fun MedicalIdScreen(
                             label = "REGIONAL EMERGENCY",
                             value = medicalId.regionalEmergencyNumber.ifEmpty { "911" },
                             icon = Icons.Default.PhoneAndroid,
-                            highlightColor = Color(0xFFF2B8B5)
+                            highlightColor = Color(0xFFF2B8B5),
+                            onClick = { onDialContact(medicalId.regionalEmergencyNumber.ifEmpty { "911" }) }
                         )
                     }
                 }
@@ -255,7 +256,10 @@ fun MedicalIdScreen(
                     label = "PRIMARY EMERGENCY DIAL",
                     value = if (medicalId.emergencyContact.trim().isEmpty()) "Not Set" else medicalId.emergencyContact,
                     icon = Icons.Default.ContactPhone,
-                    highlightColor = Color(0xFFE6E1E5)
+                    highlightColor = Color(0xFFE6E1E5),
+                    onClick = if (medicalId.emergencyContact.isNotBlank()) {
+                        { onDialContact(medicalId.emergencyContact) }
+                    } else null
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -316,22 +320,45 @@ fun MedicalIdScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp),
+                                .padding(vertical = 6.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF3B3645))
+                                .clickable { 
+                                    if (contact.second.isNotBlank()) onDialContact(contact.second)
+                                }
+                                .padding(12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Contact ${index + 1}: ${contact.first.ifEmpty { "Unnamed" }}",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFFE6E1E5)
-                            )
-                            Text(
-                                text = contact.second,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFD0BCFF)
-                            )
+                            Column {
+                                Text(
+                                    text = contact.first.ifEmpty { "Unnamed Contact" },
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFFE6E1E5)
+                                )
+                                Text(
+                                    text = contact.second.ifEmpty { "No number set" },
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFD0BCFF)
+                                )
+                            }
+                            if (contact.second.isNotBlank()) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(Color(0xFFB3261E).copy(alpha = 0.2f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PhoneAndroid,
+                                        contentDescription = "Dial",
+                                        tint = Color(0xFFF2B8B5),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -617,9 +644,19 @@ fun CardField(
     label: String,
     value: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    highlightColor: Color
+    highlightColor: Color,
+    onClick: (() -> Unit)? = null
 ) {
-    Column {
+    Column(
+        modifier = if (onClick != null) {
+            Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { onClick() }
+                .padding(4.dp)
+        } else {
+            Modifier.padding(4.dp)
+        }
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.*
@@ -43,6 +44,7 @@ fun NearestCareDialog(
     onAddClinic: (String, Double, Double, String, String, String) -> Unit,
     onDeleteClinic: (String) -> Unit,
     onSaveHomeBase: (String, Double, Double) -> Unit,
+    onDialContact: (String) -> Unit,
     onDismissRequest: () -> Unit
 ) {
     var showAddForm by remember { mutableStateOf(false) }
@@ -547,12 +549,30 @@ fun NearestCareDialog(
                                             )
                                         }
                                         if (clinic.contactNumber.isNotBlank()) {
-                                            Text(
-                                                text = "Contact: ${clinic.contactNumber}",
-                                                fontSize = 11.sp,
-                                                color = Color(0xFF81C784),
-                                                lineHeight = 14.sp
-                                            )
+                                            Row(
+                                                modifier = Modifier
+                                                    .padding(vertical = 4.dp)
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .clickable { onDialContact(clinic.contactNumber) }
+                                                    .background(Color(0xFF81C784).copy(alpha = 0.1f))
+                                                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Phone,
+                                                    contentDescription = "Call Clinic",
+                                                    tint = Color(0xFF81C784),
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = "Call ${clinic.contactNumber}",
+                                                    fontSize = 11.sp,
+                                                    color = Color(0xFF81C784),
+                                                    fontWeight = FontWeight.Bold,
+                                                    lineHeight = 14.sp
+                                                )
+                                            }
                                         }
                                         if (clinic.note.isNotBlank()) {
                                             Text(
