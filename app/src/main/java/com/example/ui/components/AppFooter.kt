@@ -62,7 +62,7 @@ fun AppFooter(
 
         // Creative design attribution holding tel number
         Text(
-            text = "Designed with ❤️ Comfort Designs - +263772824132.",
+            text = "Designed with ❤️ by Comfort Designs - +263772824132.",
             fontSize = 11.sp,
             color = Color(0xFFFFB4A2), // Terracotta/Rose link matching theme
             fontWeight = FontWeight.SemiBold,

@@ -61,10 +61,29 @@ import com.example.ui.triage.TriageViewModel
 import com.example.ui.triage.PanicScreen
 import com.example.ui.inventory.InventoryScreen
 import androidx.compose.material.icons.filled.MedicalServices
+import android.os.Build
+import android.view.WindowManager
+import android.app.KeyguardManager
+import android.content.Context
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Show application on lock screen
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+            val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+            keyguardManager.requestDismissKeyguard(this, null)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+            )
+        }
+        
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
